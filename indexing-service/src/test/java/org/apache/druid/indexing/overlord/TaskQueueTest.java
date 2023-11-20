@@ -183,6 +183,31 @@ public class TaskQueueTest extends IngestionTestBase
     Assert.assertEquals("Shutdown Task test", statusOptional.get().getErrorMsg());
   }
 
+  @Test(expected = TooManyTasksException.class)
+  public void testTaskErrorWhenExceptionIsThrownDueToQueueSize() 
+  {
+    final TaskActionClientFactory actionClientFactory = createActionClientFactory();
+    final TaskQueue taskQueue = new TaskQueue(
+            new TaskLockConfig(),
+            new TaskQueueConfig(1, null, null, null, null),
+            new DefaultTaskConfig(),
+            getTaskStorage(),
+            new SimpleTaskRunner(actionClientFactory),
+            actionClientFactory,
+            getLockbox(),
+            new NoopServiceEmitter()
+    );
+    taskQueue.setActive(true);
+
+    // Create a Task and add it to the TaskQueue
+    final TestTask task1 = new TestTask("t1", Intervals.of("2021-01/P1M"));
+    final TestTask task2 = new TestTask("t2", Intervals.of("2021-01/P1M"));
+    taskQueue.add(task1);
+
+    // we will get exception here as taskQueue size is 1 max.Queuesize is already 1
+    taskQueue.add(task2);
+  }
+
   @Test
   public void testSetUseLineageBasedSegmentAllocationByDefault() throws EntryExistsException, TooManyTasksException
   {
